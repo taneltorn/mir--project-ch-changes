@@ -120,7 +120,6 @@ def _cluster_plot(
 
         if show_labels:
             for j in range(len(label_indices)):
-                print(f"j={j} {labels[work_id]['labels'][j]}")
                 x = embedding[label_indices[j], 0]
                 y = embedding[label_indices[j], 1]
                 plt.text(x, y, f"{labels[work_id]['labels'][j]}", fontsize=6)
