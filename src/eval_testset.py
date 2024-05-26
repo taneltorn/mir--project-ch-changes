@@ -22,14 +22,14 @@ from src.utils import (
 
 
 def _cluster_plot(
-        dist_matrix,
-        ref_labels,
-        output_path,
-        test_only_labels=None,
-        marks="markers",
-        logger=None,
-        labels={},
-        show_labels=False
+    dist_matrix,
+    ref_labels,
+    output_path,
+    test_only_labels=None,
+    marks="markers",
+    logger=None,
+    labels={},
+    show_labels=False
 ) -> None:
     """
     Generate t-SNE clustering PNG plot.
@@ -206,11 +206,11 @@ def _compute_distance_worker(args):
 
 
 def _generate_dist_matrixMPS(
-        query_perf_label,
-        query_embed,
-        ref_perf_label=None,
-        ref_embed=None,
-        query_in_ref=None,
+    query_perf_label,
+    query_embed,
+    ref_perf_label=None,
+    ref_embed=None,
+    query_in_ref=None,
 ):
     """generate distance matrix from query and ref embeddings
 
@@ -246,12 +246,12 @@ def _generate_dist_matrixMPS(
         distances = pool.map(_compute_distance_worker, args_list)
 
     for (idx, idy), distance in zip(
-            [
-                (idx, idy)
-                for idx in range(len(query_perf_label))
-                for idy in range(len(ref_perf_label))
-            ],
-            distances,
+        [
+            (idx, idy)
+            for idx in range(len(query_perf_label))
+            for idy in range(len(ref_perf_label))
+        ],
+        distances,
     ):
         dist_matrix[idx, idy] = distance
 
@@ -263,7 +263,6 @@ def _generate_dist_matrixMPS(
     ref_label = [v for k, v in ref_perf_label]
 
     return dist_matrix, query_label, ref_label
-
 
 # =============================================================================
 # The original CoverHunter distance matrix function was very slow at scale.
@@ -301,7 +300,7 @@ def _load_data_from_dir(query_chunked_lines):
 
 
 def _cut_one_line_with_dur(
-        line, window_length_s, window_shift_s, hop_size=0.04
+    line, window_length_s, window_shift_s, hop_size=0.04
 ):
     """cut line with window_length_s
 
@@ -368,21 +367,21 @@ def _cut_lines_with_dur(init_lines, chunk_s, embed_dir):
 
 
 def eval_for_map_with_feat(
-        hp,
-        model,
-        embed_dir,
-        query_path,
-        ref_path,
-        query_in_ref_path=None,
-        batch_size=128,
-        num_workers=1,
-        device="mps",
-        logger=None,
-        plot_name="",
-        marks="markers",
-        dist_name="",
-        test_only_labels=None,
-        show_labels=False
+    hp,
+    model,
+    embed_dir,
+    query_path,
+    ref_path,
+    query_in_ref_path=None,
+    batch_size=128,
+    num_workers=1,
+    device="mps",
+    logger=None,
+    plot_name="",
+    marks="markers",
+    dist_name="",
+    test_only_labels=None,
+    show_labels=False
 ):
     """compute map10 with trained model and query/ref loader(dataset loader
     can speed up process dramatically)
@@ -433,7 +432,7 @@ def eval_for_map_with_feat(
     chunk_s = hp["chunk_s"]
     # assumes resolution of 25 features per second (hop length 0.04s)
     assert (
-            infer_frame == chunk_s * 25
+        infer_frame == chunk_s * 25
     ), f"Error for mismatch of chunk_frame and chunk_s: {infer_frame}!={chunk_s}*25"
 
     query_lines = read_lines(query_path, log=False)
