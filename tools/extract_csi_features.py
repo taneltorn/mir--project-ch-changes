@@ -414,7 +414,8 @@ def _split_data_by_work_id(
 
             # Calculate test split points based on train ratio and minimum samples
             min_samples = (
-                1  # Ensure at least 1 sample in each set for remaining works
+                # 1  # Ensure at least 1 sample in each set for remaining works
+                0
             )
             test_split = int(len(samples) * test_ratio)
             test_split = max(

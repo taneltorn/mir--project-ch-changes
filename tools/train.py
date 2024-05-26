@@ -112,7 +112,7 @@ def _main() -> None:
     t.configure_optimizer()
     t.load_model()
     t.configure_scheduler()
-    t.train(max_epochs=100000)
+    t.train(max_epochs=50)
 
 
 if __name__ == "__main__":

@@ -45,6 +45,11 @@ def _main() -> None:
     parser.add_argument(
         "-dist_name", default="", type=str, help="Save the distance matrix to this path",
     )
+    parser.add_argument(
+        "-show_labels",
+        action="store_true",
+        help="Display label names on t-SNE plot.",
+    )
 
     args = parser.parse_args()
     model_dir = args.model_dir
@@ -115,6 +120,7 @@ def _main() -> None:
         plot_name=plot_name,
         marks=args.marks,
         dist_name=args.dist_name,
+        show_labels=args.show_labels
     )
 
 
