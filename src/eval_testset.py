@@ -7,6 +7,7 @@ import os
 
 import numpy as np
 import torch
+import math
 from torch.utils.data import DataLoader
 
 from src.dataset import AudioFeatDataset
@@ -27,6 +28,8 @@ def _cluster_plot(
     test_only_labels=None,
     marks="markers",
     logger=None,
+    labels={},
+    show_labels=False
 ) -> None:
     """
     Generate t-SNE clustering PNG plot.
@@ -45,10 +48,18 @@ def _cluster_plot(
 
     if test_only_labels is None:
         test_only_labels = []
+
+    if labels is None:
+        labels = {}
+
+    n_samples = dist_matrix.shape[0]
+    perplexity = min(30, n_samples - 1)
+
     model = TSNE(
         n_components=2,
         init="random",
         random_state=0,
+        perplexity=perplexity
     )  # Adjust parameters as needed
     embedding = model.fit_transform(dist_matrix)
 
@@ -56,16 +67,16 @@ def _cluster_plot(
     cmap_name = "hsv"  # use any pyplot palette you like
     # See https://matplotlib.org/stable/api/markers_api.html for style definitions
     marker_styles = ["o", "s", "^", "p", "x", "D"]
-    num_colors = len(unique_labels) // len(marker_styles)
+    num_colors = len(unique_labels)
     colors = plt.get_cmap(cmap_name, num_colors)(range(num_colors))
-    plt.figure(figsize=(15, 15))
+    plt.figure(figsize=(12, 12))
 
     color_dict = {}  # Dictionary to store color for each label
     marker_dict = {}  # Dictionary to store marker style for each label
 
     if marks == "ids":
         marker_styles = [f"${label}$" for label in unique_labels]
-    
+
     for i, label in enumerate(unique_labels):
         # Assign color for label
         color_dict[label] = colors[i % num_colors]
@@ -78,12 +89,12 @@ def _cluster_plot(
     if logger:
         logger.info(f"test_only_labels: {test_only_labels}")
 
-    for i, label in enumerate(unique_labels):
-        label_indices = np.where(ref_labels == label)[0]
-        color = color_dict[label]
-        marker = marker_dict[label]
-        if label in test_only_labels:
-            logger.info(f"test_only_label: {label}")
+    for i, work_id in enumerate(unique_labels):
+        label_indices = np.where(ref_labels == work_id)[0]
+        color = color_dict[work_id]
+        marker = marker_dict[work_id]
+        if work_id in test_only_labels:
+            logger.info(f"test_only_label: {work_id}")
             # Loop through each coordinate for this label
             for j in range(len(label_indices)):
                 x = embedding[label_indices[j], 0]
@@ -104,8 +115,15 @@ def _cluster_plot(
             embedding[label_indices, 1],
             color=color,
             marker=marker,
-            label=label,
+            label=labels[work_id]["work"],
         )
+
+        if show_labels:
+            for j in range(len(label_indices)):
+                print(f"j={j} {labels[work_id]['labels'][j]}")
+                x = embedding[label_indices[j], 0]
+                y = embedding[label_indices[j], 1]
+                plt.text(x, y, f"{labels[work_id]['labels'][j]}", fontsize=6)
 
     plt.title("t-SNE Visualization of Clustering")
     if test_only_labels:
@@ -117,7 +135,8 @@ def _cluster_plot(
             va="bottom",
             transform=plt.gca().transAxes,
         )
-
+    plt.gca().set_aspect('equal', adjustable='box')
+    plt.legend()
     plt.tight_layout()
     plt.savefig(output_path)
     plt.close()
@@ -257,16 +276,27 @@ def _load_data_from_dir(query_chunked_lines):
     query_perf_label = []
     query_embed = {}
     perf_set = set()
+    labels = {}
     for line in query_chunked_lines:
         local_data = line_to_dict(line)
         perf = local_data["perf"].split(f"-{RARE_DELIMITER}start-")[0]
-        label = local_data["work_id"]
+        work_id = local_data["work_id"]
+
+        if work_id not in labels:
+            labels[work_id] = {
+                "labels": [],
+                "work": None
+            }
+
         if perf not in perf_set:  # exclude duplicate perfs
-            query_perf_label.append((perf, label))
+            query_perf_label.append((perf, work_id))
             perf_set.add(perf)
             query_embed[perf] = []
+            labels[work_id]["work"] = local_data["work"]
+            labels[work_id]["labels"].append(perf)
+
         query_embed[perf].append(np.load(local_data["embed"]))
-    return query_perf_label, query_embed
+    return query_perf_label, query_embed, labels
 
 
 def _cut_one_line_with_dur(
@@ -351,6 +381,7 @@ def eval_for_map_with_feat(
     marks="markers",
     dist_name="",
     test_only_labels=None,
+    show_labels=False
 ):
     """compute map10 with trained model and query/ref loader(dataset loader
     can speed up process dramatically)
@@ -502,11 +533,11 @@ def eval_for_map_with_feat(
             "skip computing the ref embeddings",
         )
 
-    query_perf_label, query_embed = _load_data_from_dir(query_chunked_lines)
+    query_perf_label, query_embed, labels = _load_data_from_dir(query_chunked_lines)
     if ref_path == query_path:
-        ref_perf_label, ref_embed = None, None
+        ref_perf_label, ref_embed, ref_work_labels = None, None, labels
     else:
-        ref_perf_label, ref_embed = _load_data_from_dir(ref_chunked_lines)
+        ref_perf_label, ref_embed, ref_work_labels = _load_data_from_dir(ref_chunked_lines)
     if logger:
         logger.info(
             "Finished loading embedding. Start to compute distance matrix"
@@ -541,7 +572,7 @@ def eval_for_map_with_feat(
             assert os.path.isdir(path), f"Invalid plot path: {plot_name}"
 
         _cluster_plot(
-            dist_matrix, ref_label, plot_name, test_only_labels, marks, logger
+            dist_matrix, ref_label, plot_name, test_only_labels, marks, logger, labels=labels, show_labels=show_labels
         )
         logger.info(f"t-SNE plot saved to: {plot_name}")
 
